@@ -162,16 +162,26 @@ export default class MusicAPI {
    * Get related media of a song given an id.
    */
   static getSongMedia = (id) => {
-    let requestUrl = BASE_URL + "/songs/" + id + "/media?n=4";
+    let query = `SELECT DISTINCT ?url ?title ?thumbnailUrl 
+    WHERE {
+      ?MediaObject a schema:MediaObject;
+        schema:url ?url;
+        schema:name ?title;
+        schema:image ?thumbnailUrl.
+      ?MusicRecording a schema:MusicRecording;
+        schema:subjectOf ?MediaObject;
+        billboard:id "${id}"
+    }`;
+    let LRA_URL = "http://localhost:9000/api/lra/query?q=" + encodeURIComponent(query);
 
-    return axios.get(requestUrl)
+    return axios.get(LRA_URL)
       .then(function (response) {
-        let result = response.data.data;
+        let result = response.data.table.rows;
         let media = [];
 
         result.forEach((mediaObj) => {
-          media.push(new MediaItem(mediaObj.url, mediaObj.caption,
-            mediaObj.thumbnail));
+          media.push(new MediaItem(mediaObj.url, mediaObj.title,
+            mediaObj.thumbnailURL));
         });
 
         return media;
