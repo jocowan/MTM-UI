@@ -128,15 +128,27 @@ export default class MusicAPI {
    * Get historical ranks of a song given an id
    */
   static getSongRankings = (id) => {
-    let requestUrl = BASE_URL + "/songs/" + id + "/ranks";
+    let query = `SELECT DISTINCT ?date ?position 
+    WHERE {
+      ?MusicPlaylist a schema:MusicPlaylist;
+        schema:track ?ListItem;
+        schema:datePublished ?date.
+      ?ListItem a schema:ListItem;
+        schema:item ?MusicRecording;
+        schema:position ?position.
+      ?MusicRecording a schema:MusicRecording;
+        billboard:id "${id}"
+    }`;
 
-    return axios.get(requestUrl)
+    let LRA_URL = "http://localhost:9000/api/lra/query?q=" + encodeURIComponent(query);
+
+    return axios.get(LRA_URL)
       .then(function (res) {
-        let result = res.data.data;
+        let result = res.data.table.rows;
         let rankings = [];
 
         result.forEach((ranking) => {
-          rankings.push(new SongRank(ranking.endDate, ranking.rank));
+          rankings.push(new SongRank(ranking.date, ranking.position));
         });
 
         return rankings;
